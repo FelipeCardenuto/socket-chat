@@ -4,53 +4,116 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Chat em Tempo Real</title>
 </head>
 <body>
     <label for="username">Nickname:</label>
     <input type="text" id="username" autocomplete="off" placeholder="Nickname">
+    
+    <label for="servidor">Selecione o Servidor:</label>
+    <select id="servidor">
+        <option value="Server1" selected>Servidor 1</option>
+        <option value="Server2">Servidor 2</option>
+        <option value="Server3">Servidor 3</option>
+        <option value="Server4">Servidor 4</option>
+    </select>
+    
+    <button id="connectButton">Conectar</button>
     <br>
     <hr>
-    <ul id='messages'>
-    </ul>
+    <ul id='messages'></ul>
     <form id="form" action="">
-        <textarea id="input" autocomplete="off" rows="5" cols="100"></textarea><br>
-        <button>Enviar</button>
+        <textarea id="input" autocomplete="off" rows="5" cols="100" disabled></textarea><br>
+        <button id="sendButton" disabled>Enviar</button>
     </form>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        var socket = io()
+        let socket;
+        let currentPort = 3000;
+        let isConnected = false;
 
-        document.getElementById('form').addEventListener('submit',
-            function(e){
-                e.preventDefault();
-                var message = document.getElementById('input').value;
-                var username = document.getElementById('username').value;
-                var currentTime = new Date().toLocaleTimeString();
-                socket.emit('chat message', {user: username, message: message, time: currentTime})
-                document.getElementById('input').value = ""
-                
+        function connectSocket() {
+            const servidor = document.getElementById('servidor').value;
+
+
+            if (socket) {
+                socket.disconnect();
             }
-        )
 
-        document.getElementById('input').addEventListener('keydown',
-            function(e){
-                if(e.key === 'Enter'){
-                    e.preventDefault()
-                    document.getElementById('form').dispatchEvent(new Event('submit'))
-                }
+            currentPort = servidor === 'Server1' ? 3000 :
+                          servidor === 'Server2' ? 4000 :
+                          servidor === 'Server3' ? 5000 : 5050;
+
+            socket = io(`http://localhost:${currentPort}`);
+
+            const room = servidor;
+            socket.emit('join room', room);
+            document.getElementById('messages').innerHTML = '';
+
+            document.getElementById('input').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+            isConnected = true;
+
+            socket.on('chat message', function(data) {
+                addMessage(`<b>[${data.servidor}][${data.time}] ${data.user}:</b> ${data.message}`);
+            });
+
+            addMessage(`<b>Você se conectou ao ${servidor} na porta ${currentPort}</b>`);
+
+            socket.on('connect_error', (error) => {
+                alert(`Erro ao conectar ao servidor: ${error.message}`);
+                isConnected = false;
+            });
+        }
+
+        document.getElementById('servidor').addEventListener('change', () => {
+            if (socket) {
+                socket.disconnect();
+                isConnected = false;
+                addMessage('Você alterou o servidor. Por favor, clique em "Conectar" para se reconectar ao novo servidor.');
             }
-        )
 
-        socket.on('chat message', function(data) {
-            addMessage('<b>[' + data.time + ']' + data.user + ':</b>' + data.message)
-        })
+            document.getElementById('input').disabled = true;
+            document.getElementById('sendButton').disabled = true;
+        });
 
-        function addMessage(message){
-            var li = document.createElement('li')
-            li.innerHTML = message
-            document.getElementById('messages').appendChild(li)
+        document.getElementById('connectButton').addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            
+            if (!username) {
+                alert("Por favor, insira um nickname antes de se conectar.");
+                return;
+            }
+
+            if (isConnected) {
+                alert("Você já está conectado. Se deseja mudar de servidor, selecione um novo servidor.");
+                return;
+            }
+
+            connectSocket();
+        });
+
+        document.getElementById('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const message = document.getElementById('input').value;
+            const servidor = document.getElementById('servidor').value;
+            const username = document.getElementById('username').value;
+            const currentTime = new Date().toLocaleTimeString();
+
+            if (socket && isConnected) {
+                socket.emit('chat message', { servidor, user: username, message, time: currentTime });
+                document.getElementById('input').value = "";
+            } else {
+                alert("Você não está conectado a nenhum servidor.");
+            }
+        });
+
+        function addMessage(message) {
+            const li = document.createElement('li');
+            li.innerHTML = message;
+            document.getElementById('messages').appendChild(li);
         }
     </script>
 </body>
