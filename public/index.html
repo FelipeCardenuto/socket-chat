@@ -48,6 +48,7 @@
             currentPort = servidor === 'Server1' ? 3000 :3030
                           servidor === 'Server2' ? 4000 :4030;
                           servidor === 'Server3' ? 5000 : 5050;
+                          servidor === 'Server4' ? 6000 : 6060;
 
             socket = io(`http://localhost:${currentPort}`);
 
