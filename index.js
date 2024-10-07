@@ -1,25 +1,28 @@
+// arquivo: server.js
+
 const express = require('express');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
 const http = require('http');
 const path = require('path');
 
-const createServer = (port) => {
+const PORTS = [3000, 4000, 5000, 5050];
+
+const createServerInstance = (port) => {
     const app = express();
     const server = http.createServer(app);
-
-    const io = socketIo(server, {
+    const io = new Server(server, {
         cors: {
-            origin: "*",
-            methods: ["GET", "POST"],
-            allowedHeaders: ["my-custom-header"],
-            credentials: true
+            origin: "*", // Permite todas as origens. Para produção, especifique as origens permitidas.
+            methods: ["GET", "POST"]
         }
     });
 
+    // Serve arquivos estáticos da pasta 'public'
     app.use(express.static(path.join(__dirname, 'public')));
 
+    // Rota principal
     app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, 'public', 'servidor.html'));
+        res.sendFile(path.join(__dirname, 'public', 'index.html')); // Assegure-se de que o arquivo HTML está nomeado corretamente
     });
 
     io.on('connection', (socket) => {
@@ -32,23 +35,19 @@ const createServer = (port) => {
 
         socket.on('chat message', (data) => {
             console.log(`Mensagem recebida: ${JSON.stringify(data)}`);
-
+            // Emite a mensagem para todos os clientes na sala específica
             io.to(data.servidor).emit('chat message', data);
         });
-
 
         socket.on('disconnect', () => {
             console.log(`Usuário desconectado do servidor na porta ${port}`);
         });
     });
 
-
     server.listen(port, () => {
         console.log(`Servidor rodando na porta ${port}`);
     });
 };
 
-createServer(3000);
-createServer(4000);
-createServer(5000);
-createServer(5050);
+// Cria instâncias do servidor para cada porta especificada
+PORTS.forEach(port => createServerInstance(port));
