@@ -34,7 +34,7 @@
    
     <script>
         let socket;
-        let currentPort = 3000;
+        let currentPort = 3030;
         let isConnected = false;
 
         function connectSocket() {
@@ -45,8 +45,8 @@
                 socket.disconnect();
             }
 
-            currentPort = servidor === 'Server1' ? 3000 :
-                          servidor === 'Server2' ? 4000 :
+            currentPort = servidor === 'Server1' ? 3000 :3030
+                          servidor === 'Server2' ? 4000 :4030;
                           servidor === 'Server3' ? 5000 : 5050;
 
             socket = io(`http://localhost:${currentPort}`);
